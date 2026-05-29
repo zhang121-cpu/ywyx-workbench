@@ -13,4 +13,5 @@
 /fceux-am
 /am-kernels
 
-!/E/*/nvboard
+!/E/*
+/nvboard
