@@ -1,7 +1,7 @@
 module top(
   input clk,
   input rst,
-  output led[7:0]
+  output [7:0] led
 );
 
   reg [15:0] count;
