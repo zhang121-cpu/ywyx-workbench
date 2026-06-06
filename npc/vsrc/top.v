@@ -16,7 +16,7 @@ module top (
   assign result3 = A ^ data;
   assign result4 = A & B;
   assign result5 = A | B;
-  assign result7 = result1 ^ {4{Overflow}};
+  assign result7 = {4{result1[3] ^ Overflow}};
   assign result8 = {4{Zero}};
   mux81 mux81_1 (result1, result1, result3, result4, result5, result3, result7, result8, opcode, Result);
 endmodule
