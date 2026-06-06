@@ -1,25 +1,14 @@
-module top(
-  input clk,
-  input rst,
-  output [7:0] led
-);
-
-  reg [23:0] count;
-
-  always @(posedge clk ) begin
-    if (rst)
-      count <= 0;
-    else 
-      count <= count + 1;
+module top(x,en,y);
+  input  [7:0] x;
+  input  en;
+  output reg [2:0]y;
+  integer i;
+  always @(x or en) begin
+    if (en) begin
+      y = 0;
+      for( i = 0; i <= 7; i = i+1)
+          if(x[i] == 1)  y = i[2:0];
+    end
+    else  y = 0;
   end
-
-  assign led[7] = (count[23])&(count[22])&(count[21]);
-  assign led[6] = (count[23])&(count[22])&(~count[21]);
-  assign led[5] = (count[23])&(~count[22])&(count[21]);
-  assign led[4] = (count[23])&(~count[22])&(~count[21]);
-  assign led[3] = (~count[23])&(count[22])&(count[21]);
-  assign led[2] = (~count[23])&(count[22])&(~count[21]);
-  assign led[1] = (~count[23])&(~count[22])&(count[21]);
-  assign led[0] = (~count[23])&(~count[22])&(~count[21]);
-
 endmodule
