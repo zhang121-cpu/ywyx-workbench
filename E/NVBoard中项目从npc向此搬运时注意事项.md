@@ -1,6 +1,8 @@
 ## 1.删除.gitgnore
 
-## 2.打开Makefile ，删除第一行到第四行
+## 2.删除“原先的Makefile”
+
+## 3.开Makefile ，删除第一行到第四行
 
 # 用于sim中的记录
 include ../Makefile
