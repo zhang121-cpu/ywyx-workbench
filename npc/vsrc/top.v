@@ -20,10 +20,10 @@ module decoder(
 );
 
   integer i;
-  always @(x or en) begin
-    y_en = 1;
+  assign y_en = (|x) || en;
+  always @(*) begin
+    y = 0;
     if (en) begin
-      y = 0;
       for( i = 0; i <= 7; i = i+1)
           if(x[i] == 1)  y = i[2:0];
     end
