@@ -25,7 +25,7 @@ int main() {
     reset(10);
 
     while(1) {
-        for (int i = 0; i < 1000; i++) {
+        for (int i = 0; i < 100000; i++) {
             // do nothing, just waste some time
         }
         nvboard_update();
