@@ -25,8 +25,8 @@ module top (
     assign rom_context[4]  = 8'b00010111;
     assign rom_context[5]  = 8'b00101001;
     assign rom_context[6]  = 8'b11010001;
-    assign rom_context[7]  = 8'b11011111;
-    assign rom_context[8]  = 8'b0000_1000;
+    assign rom_context[7]  = 8'b01000010;
+    assign rom_context[8]  = 8'b11011111;
     assign rom_context[9]  = 8'b0000_1001;
     assign rom_context[10] = 8'b0000_1010;
     assign rom_context[11] = 8'b0000_1011;
