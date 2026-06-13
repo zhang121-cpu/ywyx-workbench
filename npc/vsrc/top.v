@@ -1,53 +1,91 @@
-module top(
+module top (
     input clk,
     input rst,
-    output VGA_HSYNC,
-    output VGA_VSYNC,
-    output VGA_BLANK_N,
-    output [7:0] VGA_R,
-    output [7:0] VGA_G,
-    output [7:0] VGA_B
+    output [6:0] Seven_Segment_Display [1:0]
 );
 
-    wire [9:0] h_addr;
-    wire [9:0] v_addr;
-    wire [23:0] vga_data;
+    wire [3:0] pc_state;
+    reg [3:0] pc_nextstate;
+    wire [7:0] rom_context [15:0];
+    wire [7:0] instruction;
+    wire [1:0] opcode;
+    wire [1:0] rd, rs1, rs2;
+    wire [3:0] imm, addr;
+    wire [7:0] rdata1, rdata2;
+    reg [1:0] raddr1, raddr2, waddr;
+    reg [7:0] wdata;
+    reg wen,seg_dis;
 
-    vga_ctrl i0 (
-    .pclk(clk),
-    .reset(rst),
-    .vga_data(vga_data),
-    .h_addr(h_addr),
-    .v_addr(v_addr),
-    .hsync(VGA_HSYNC),
-    .vsync(VGA_VSYNC),
-    .valid(VGA_BLANK_N),
-    .vga_r(VGA_R),
-    .vga_g(VGA_G),
-    .vga_b(VGA_B)
-    );
+    Reg_noen_4b pc_reg (clk, rst, pc_nextstate, pc_state);
 
-    vmem i1 (
-        .h_addr(h_addr),
-        .v_addr(v_addr[8:0]),
-        .vga_data(vga_data)
-    );
+    assign rom_context[0]  = 8'b10001010;  
+    assign rom_context[1]  = 8'b10010000;  
+    assign rom_context[2]  = 8'b10100000;  
+    assign rom_context[3]  = 8'b10110001;
+    assign rom_context[4]  = 8'b00010111;
+    assign rom_context[5]  = 8'b00101001;
+    assign rom_context[6]  = 8'b11010001;
+    assign rom_context[7]  = 8'b11011111;
+    assign rom_context[8]  = 8'b0000_1000;
+    assign rom_context[9]  = 8'b0000_1001;
+    assign rom_context[10] = 8'b0000_1010;
+    assign rom_context[11] = 8'b0000_1011;
+    assign rom_context[12] = 8'b0000_1100;
+    assign rom_context[13] = 8'b0000_1101;
+    assign rom_context[14] = 8'b0000_1110;
+    assign rom_context[15] = 8'b0000_1111;
+    mux16_1_8b rom (rom_context, pc_state, instruction);
 
-endmodule
+    assign opcode = instruction[7:6];
+    assign rd = instruction[5:4];
+    assign rs1 = instruction[3:2];
+    assign rs2 = instruction[1:0];
+    assign imm = instruction[3:0];
+    assign addr = instruction[5:2];
 
+    always @ (*) begin
+        raddr1 = 2'b00;
+        raddr2 = 2'b00;
+        waddr  = 2'b00;
+        wdata  = 8'h00;
+        wen    = 1'b0;
+        seg_dis = 1'b0;
+        pc_nextstate = pc_state + 4'd1; 
 
-module vmem(
-    input [9:0] h_addr,
-    input [8:0] v_addr,
-    output [23:0] vga_data
-);
+        case (opcode)
+            2'b00:begin
+                raddr1 = rs1;
+                raddr2 = rs2;
+                waddr = rd;
+                wdata = rdata1 + rdata2;
+                wen = 1; 
+            end
+            2'b01:begin
+                raddr2 = rs2;
+                wen = 1'b0;
+                seg_dis = 1'b1;
+            end
+            2'b10:begin
+                waddr = rd;
+                wdata = {4'b0000,imm};
+                wen = 1;
+            end
+            2'b11:begin
+                raddr1 = 2'b00;
+                raddr2 = rs2;
+                wen = 0;
+                if (rdata1 != rdata2)
+                    pc_nextstate = addr;
+            end
+            default:begin
 
-reg [23:0] vga_mem [524287:0];
+            end
+        endcase        
+    end
 
-initial begin
-    $readmemh("resource/picture2.hex", vga_mem);
-end
+    GPR gpr (clk, rst, raddr1, raddr2, rdata1, rdata2, waddr, wdata, wen);
 
-assign vga_data = vga_mem[{h_addr, v_addr}];
+    bcd7seg display1 (rdata2[3:0], seg_dis, Seven_Segment_Display[0]);
+    bcd7seg display2 (rdata2[7:4], seg_dis, Seven_Segment_Display[1]);
 
 endmodule
