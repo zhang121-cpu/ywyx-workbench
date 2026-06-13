@@ -1,12 +1,13 @@
 module top (
     input clk,
     input rst,
-    output [6:0] Seven_Segment_Display [1:0]
+    output [6:0] Seven_Segment_Display1,
+    output [6:0] Seven_Segment_Display0
 );
 
     wire [3:0] pc_state;
     reg [3:0] pc_nextstate;
-    wire [7:0] rom_context [15:0];
+    wire [127:0] rom_context;
     wire [7:0] instruction;
     wire [1:0] opcode;
     wire [1:0] rd, rs1, rs2;
@@ -18,22 +19,22 @@ module top (
 
     Reg_noen_4b pc_reg (clk, rst, pc_nextstate, pc_state);
 
-    assign rom_context[0]  = 8'b10001010;  
-    assign rom_context[1]  = 8'b10010000;  
-    assign rom_context[2]  = 8'b10100000;  
-    assign rom_context[3]  = 8'b10110001;
-    assign rom_context[4]  = 8'b00010111;
-    assign rom_context[5]  = 8'b00101001;
-    assign rom_context[6]  = 8'b11010001;
-    assign rom_context[7]  = 8'b01000010;
-    assign rom_context[8]  = 8'b11011111;
-    assign rom_context[9]  = 8'b0000_1001;
-    assign rom_context[10] = 8'b0000_1010;
-    assign rom_context[11] = 8'b0000_1011;
-    assign rom_context[12] = 8'b0000_1100;
-    assign rom_context[13] = 8'b0000_1101;
-    assign rom_context[14] = 8'b0000_1110;
-    assign rom_context[15] = 8'b0000_1111;
+    assign rom_context[7:0]    = 8'b10001010;  
+    assign rom_context[15:8]   = 8'b10010000;  
+    assign rom_context[23:16]  = 8'b10100000;  
+    assign rom_context[31:24]  = 8'b10110001;
+    assign rom_context[39:32]  = 8'b00010111;
+    assign rom_context[47:40]  = 8'b00101001;
+    assign rom_context[55:48]  = 8'b11010001;
+    assign rom_context[63:56]  = 8'b01000010;
+    assign rom_context[71:64]  = 8'b11011111;
+    assign rom_context[79:72]  = 8'b0000_1001;
+    assign rom_context[87:80]  = 8'b0000_1010;
+    assign rom_context[95:88]  = 8'b0000_1011;
+    assign rom_context[103:96] = 8'b0000_1100;
+    assign rom_context[111:104]= 8'b0000_1101;
+    assign rom_context[119:112]= 8'b0000_1110;
+    assign rom_context[127:120]= 8'b0000_1111;
     mux16_1_8b rom (rom_context, pc_state, instruction);
 
     assign opcode = instruction[7:6];
@@ -85,7 +86,7 @@ module top (
 
     GPR gpr (clk, rst, raddr1, raddr2, rdata1, rdata2, waddr, wdata, wen);
 
-    bcd7seg display1 (rdata2[3:0], seg_dis, Seven_Segment_Display[0]);
-    bcd7seg display2 (rdata2[7:4], seg_dis, Seven_Segment_Display[1]);
+    bcd7seg display1 (rdata2[7:4], seg_dis, Seven_Segment_Display1);
+    bcd7seg display2 (rdata2[3:0], seg_dis, Seven_Segment_Display0);
 
 endmodule
