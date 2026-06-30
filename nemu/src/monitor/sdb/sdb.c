@@ -15,6 +15,7 @@
 
 #include <isa.h>
 #include <cpu/cpu.h>
+#include <memory/vaddr.h>
 #include <readline/readline.h>
 #include <readline/history.h>
 #include "sdb.h"
@@ -56,7 +57,7 @@ static int cmd_q(char *args) {
 static int cmd_help(char *args);
 static int cmd_si(char *args);
 static int cmd_info(char *args);
-// static int cmd_x(char *args);
+static int cmd_x(char *args);
 static struct {
   const char *name;
   const char *description;
@@ -67,7 +68,7 @@ static struct {
   { "q", "Exit NEMU", cmd_q },
   { "si", "Execute N instrution ", cmd_si },
   { "info", "Print register state or watchpoint information", cmd_info },
-  // { "x", "Scan memory", cmd_x },
+  { "x", "Scan memory", cmd_x },
 
 
   /* TODO: Add more commands */
@@ -129,6 +130,22 @@ static int cmd_info(char *args) {
   } else {
     printf("Unknown info command '%s'. Use 'info r' for registers or 'info w' for watchpoints.\n", arg);
   }
+  return 0;
+}
+
+static int cmd_x(char *args){
+  /* extract the first argument */
+  char *num = strtok(NULL, " ");
+  char *addr = strtok(NULL, " ");
+
+  if (num == NULL || addr == NULL) {
+    printf("Please specify the printed instruction's num and address.\n");
+    return 0;
+  }
+
+  for (int i = 0; i < atoi(num); i++){
+    printf("0x%08x: 0x%08x\n", atoi(addr) + i * 4, vaddr_read(atoi(addr) + i * 4, 4));
+  } 
   return 0;
 }
 
