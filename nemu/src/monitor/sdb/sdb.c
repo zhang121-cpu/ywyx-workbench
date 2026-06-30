@@ -143,10 +143,16 @@ static int cmd_x(char *args){
     return 0;
   }
 
-  vaddr_t addr = strtoul(addr_str, NULL, 0);
+  vaddr_t addr = strtoul(addr_str, NULL, 0);//可自动识别并转换包括0x十六进制在内的各种进制
 
+  // for (int i = 0; i < atoi(num); i++){
+  //   printf("0x%08x: 0x%08x\n", addr + i * 4, vaddr_read(addr + i * 4, 4));
+  // } 
   for (int i = 0; i < atoi(num); i++){
-    printf("0x%08x: 0x%08x\n", addr + i * 4, vaddr_read(addr + i * 4, 4));
+    if (i % 4 == 0) {
+      printf("\n0x%08x: ", addr + i * 4);
+    }
+    printf("0x%08x", vaddr_read(addr + i * 4, 4));
   } 
   return 0;
 }
