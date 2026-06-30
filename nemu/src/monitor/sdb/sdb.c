@@ -55,7 +55,7 @@ static int cmd_q(char *args) {
 
 static int cmd_help(char *args);
 static int cmd_si(char *args);
-// static int cmd_info(char *args);
+static int cmd_info(char *args);
 // static int cmd_x(char *args);
 static struct {
   const char *name;
@@ -66,7 +66,7 @@ static struct {
   { "c", "Continue the execution of the program", cmd_c },
   { "q", "Exit NEMU", cmd_q },
   { "si", "Execute N instrution ", cmd_si },
-  // { "info", "Print register state or watchpoint information", cmd_info },
+  { "info", "Print register state or watchpoint information", cmd_info },
   // { "x", "Scan memory", cmd_x },
 
 
@@ -109,6 +109,25 @@ static int cmd_si(char *args) {
     }
   else {
     cpu_exec(atoi(num));
+  }
+  return 0;
+}
+
+static int cmd_info(char *args) {
+  /* extract the first argument */
+  char *arg = strtok(NULL, " ");
+
+  if (arg == NULL) {
+    printf("Please specify the type of information to display: 'r' for registers, 'w' for watchpoints.\n");
+    return 0;
+  }
+
+  if (strcmp(arg, "r") == 0) {
+    isa_reg_display();
+  // } else if (strcmp(arg, "w") == 0) {
+  //   wp_display();
+  } else {
+    printf("Unknown info command '%s'. Use 'info r' for registers or 'info w' for watchpoints.\n", arg);
   }
   return 0;
 }
