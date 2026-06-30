@@ -136,15 +136,17 @@ static int cmd_info(char *args) {
 static int cmd_x(char *args){
   /* extract the first argument */
   char *num = strtok(NULL, " ");
-  char *addr = strtok(NULL, " ");
+  char *addr_str = strtok(NULL, " ");
 
-  if (num == NULL || addr == NULL) {
+  if (num == NULL || addr_str == NULL) {
     printf("Please specify the printed instruction's num and address.\n");
     return 0;
   }
 
+  vaddr_t addr = strtoul(addr_str, NULL, 0);
+
   for (int i = 0; i < atoi(num); i++){
-    printf("0x%08x: 0x%08x\n", atoi(addr) + i * 4, vaddr_read(atoi(addr) + i * 4, 4));
+    printf("0x%08x: 0x%08x\n", addr + i * 4, vaddr_read(addr + i * 4, 4));
   } 
   return 0;
 }
