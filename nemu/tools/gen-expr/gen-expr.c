@@ -39,8 +39,8 @@ static uint32_t choose(uint32_t n) {
 
 //生成一个随即数
 static void gen_num(){
-  uint32_t num = choose(1000);   //生成0~999的随机数
-  char str[5];
+  uint32_t num = choose(1000)+1;   //生成0~999的随机数
+  char str[6];
   sprintf(str, "%uu", num);   //将随机数转换为字符串
   strcat(buf, str);          //将字符串拼接到buf中
 }
