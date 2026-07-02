@@ -44,6 +44,7 @@ static struct rule {
   {"\\(", '('},         // left parenthesis
   {"\\)", ')'},         // right parenthesis
   {" +", TK_NOTYPE},    // spaces
+  {"u", TK_NOTYPE},    // unsigned suffix
   {"==", TK_EQ},        // equal
 };
 
