@@ -54,11 +54,12 @@ static int cmd_q(char *args) {
   return -1;
 }
 
+
 static int cmd_help(char *args);
 static int cmd_si(char *args);
 static int cmd_info(char *args);
 static int cmd_x(char *args);
-static struct {
+static int cmd_p(char *args) ;static struct {
   const char *name;
   const char *description;
   int (*handler) (char *);
@@ -69,6 +70,7 @@ static struct {
   { "si", "Execute N instrution ", cmd_si },
   { "info", "Print register state or watchpoint information", cmd_info },
   { "x", "Scan memory", cmd_x },
+  {"p", "Evaluate expression", cmd_p},
 
 
   /* TODO: Add more commands */
@@ -150,6 +152,25 @@ static int cmd_x(char *args){
     printf("  0x%08x", vaddr_read(addr + i * 4, 4));
     if (i % 4 == 3) printf("\n");                                             //每4条指令换行                                                                                                    
     if (atoi(num) - 1 == i && i % 4 != 3) printf("\n");  //最后1行指令不足4条时换行
+  }
+  return 0;
+}
+
+static int cmd_p(char *args) {
+  /* extract the first argument */
+  char *arg = strtok(NULL, " ");
+
+  if (arg == NULL) {
+    printf("Please input the expression.\n");
+    return 0;
+  }
+
+  bool success = true;
+  word_t result = expr(args, &success);
+  if (success) {
+    printf("%u\n", result);
+  } else {
+    printf("Invalid expression: %s\n", args);
   }
   return 0;
 }

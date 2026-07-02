@@ -21,7 +21,7 @@
 #include <regex.h>
 
 enum {
-  TK_NOTYPE = 256, TK_EQ,
+  TK_NOTYPE = 256, TK_EQ,TK_DEC
 
   /* TODO: Add more token types */
 
@@ -36,8 +36,14 @@ static struct rule {
    * Pay attention to the precedence level of different rules.
    */
 
-  {" +", TK_NOTYPE},    // spaces
+  {"[0-9]+", TK_DEC},      // decimal number
   {"\\+", '+'},         // plus
+  {"\\-", '-'},         // minus
+  {"\\*", '*'},         // multiply
+  {"\\/", '/'},         // divide
+  {"\\(", '('},         // left parenthesis
+  {"\\)", ')'},         // right parenthesis
+  {" +", TK_NOTYPE},    // spaces
   {"==", TK_EQ},        // equal
 };
 
@@ -67,9 +73,10 @@ typedef struct token {
   char str[32];
 } Token;
 
-static Token tokens[32] __attribute__((used)) = {};
+static Token tokens[65536] __attribute__((used)) = {};
 static int nr_token __attribute__((used))  = 0;
 
+//检查表达式是否有不是别的token类型的字符
 static bool make_token(char *e) {
   int position = 0;
   int i;
@@ -89,13 +96,27 @@ static bool make_token(char *e) {
 
         position += substr_len;
 
-        /* TODO: Now a new token is recognized with rules[i]. Add codes
-         * to record the token in the array `tokens'. For certain types
-         * of tokens, some extra actions should be performed.
-         */
-
+        /*将识别出的token写入结构体tokens中，同时将nr_tokens加1*/
         switch (rules[i].token_type) {
-          default: TODO();
+          case TK_DEC:
+            Assert(substr_len < 32, "token too long: %.*s", substr_len, substr_start);  //避免token过长导致溢出
+            tokens[nr_token].type = TK_DEC;
+            strncpy(tokens[nr_token].str, substr_start, substr_len);
+            tokens[nr_token].str[substr_len] = '\0';
+            nr_token++;
+            break;
+          case '+':case '-':case '*':case '/':case '(':case ')':
+            tokens[nr_token].type = rules[i].token_type;
+            nr_token++;
+            break;
+          case TK_NOTYPE:
+            break;
+          case TK_EQ:
+            tokens[nr_token].type = rules[i].token_type;
+            nr_token++;
+            break;
+          
+          default: panic("请在make_token函数中添加新的token类型的处理逻辑");
         }
 
         break;
@@ -111,15 +132,115 @@ static bool make_token(char *e) {
   return true;
 }
 
+//检查表达式中是否有括号不匹配导致的错误
+static void check_brackets(void) {
+  int depth = 0;
+  for (int i = 0; i < nr_token; i++) {
+    if (tokens[i].type == '(') {
+      depth++;
+    } else if (tokens[i].type == ')') {
+      depth--;
+    }
+    if (depth < 0) {
+      panic("括号不匹配：位置 %d 处多余的 ')'", i);
+    }
+  }
+  if (depth > 0) {
+    panic("括号不匹配：存在 %d 个未闭合的 '('", depth);
+  }
+}
 
+//检查是否是一组对应的括号表达式
+static bool check_parentheses(int p, int q){
+  if (tokens[p].type != '(' || tokens[q].type != ')') {
+    return false;
+  }
+
+  int count = 0;
+  for (int i = p; i < q ; i++){
+    if (tokens[i].type == '(') {
+      count++;
+    } else if (tokens[i].type == ')') {
+      count--;
+    }
+    if (count == 0) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+//找到主运算符，返回其在tokens数组中的位置
+static int main_operator(int p, int q) {
+  int op = -1;
+  int min_precedence = 100;   //运算符优先级，初始值为一个较大的数，确保任何运算符的优先级都小于它
+  int parentheses_depth = 0;  //括号深度，初始值为0，表示当前不在任何括号内
+
+  for (int i = p; i <= q; i++) {
+    if (tokens[i].type == '(') {
+      parentheses_depth++;
+    } else if (tokens[i].type == ')') {
+      parentheses_depth--;
+    } else if (parentheses_depth == 0) { // 主运算符一定要在括号外部
+      int precedence;
+      switch (tokens[i].type) {
+        case '+':case '-':
+          precedence = 1;
+          break;
+        case '*':case '/':
+          precedence = 2;
+          break;
+        default:
+          continue;  //跳过非运算符token 
+      }
+
+      if (precedence <= min_precedence) {
+        min_precedence = precedence;
+        op = i;
+      }
+    }
+  }
+
+  return op;
+}
+
+//计算对应表达式值
+static word_t eval(int p, int q) {
+  if (p > q) {
+    panic("表达式错误");
+  }
+  else if (p == q) {
+    Assert(tokens[p].type == TK_DEC, "表达式错误");
+    return atoi(tokens[p].str);
+  }
+  else if (check_parentheses(p, q) == true) {
+    return eval(p + 1, q - 1);
+  }
+  else {
+    int op = main_operator(p, q) ; //找到主运算符位置
+    word_t val1 = eval(p, op - 1);
+    word_t val2 = eval(op + 1, q);
+
+    switch (tokens[op].type) {
+      case '+': return val1 + val2;
+      case '-': return val1 - val2;
+      case '*': return val1 * val2;
+      case '/': return val1 / val2;
+      default: panic("请在eval函数中添加运算符的运算逻辑");
+    }
+  }
+}
+
+//表达式词法分析，语法分析，计算表达式值
 word_t expr(char *e, bool *success) {
   if (!make_token(e)) {
     *success = false;
     return 0;
   }
 
-  /* TODO: Insert codes to evaluate the expression. */
-  TODO();
+  check_brackets();
 
-  return 0;
+  *success = true;
+  return eval(0, nr_token - 1);
 }
