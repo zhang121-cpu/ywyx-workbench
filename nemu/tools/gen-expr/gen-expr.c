@@ -119,14 +119,14 @@ int main(int argc, char *argv[]) {
     fclose(fp);
 
     //system作用：在 shell 中执行一条命令，等它跑完再返回     
-    int ret = system("gcc /tmp/.code.c -o /tmp/.expr 2>/dev/null");  
+    int ret = system("gcc /tmp/.code.c -o /tmp/.expr -Werror 2>/dev/null");  
     if (ret != 0) {
       i--;
       continue;    // 编译失败（如表达式有语法错误），跳过本次
     }
 
     fp = popen("/tmp/.expr 2>/dev/null", "r");  //popen作用：在 shell 中执行一条命令，并打开一个管道从中读取输出
-    assert(fp != NULL);
+    assert(fp != NULL); 
 
     uint32_t result;
     ret = fscanf(fp, "%u", &result);  // 读取计算结果
