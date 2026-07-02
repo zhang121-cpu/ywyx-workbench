@@ -175,13 +175,63 @@ static int cmd_p(char *args) {
   return 0;
 }
 
+//用于测试expr函数的正确性
+static void expr_test() {
+  FILE *fp = fopen("input", "r");
+  if (fp == NULL) {
+    printf("Can not open 'input'\n");
+    return;
+  }
+
+  char line[65536];
+  int line_no = 0;
+  int pass = 0, fail = 0;
+
+  while (fgets(line, sizeof(line), fp) != NULL) {
+    line_no++;
+
+    // 跳过空行
+    if (line[0] == '\n' || line[0] == '\0') continue;
+
+    // 解析 "期望结果 表达式"
+    unsigned int expected;
+    char expr_str[65536];
+    if (sscanf(line, "%u %[^\n]", &expected, expr_str) != 2) {
+      printf("Line %d: parse error: %s", line_no, line);
+      continue;
+    }
+
+    // 用 NEMU 的 expr 求值
+    bool success;
+    word_t result = expr(expr_str, &success);
+
+    // 比较
+    if (!success) {
+      printf("\033[31mFAIL\033[0m Line %d: %s (expr() returned false)\n", line_no, expr_str);
+      fail++;
+    } else if (result != expected) {
+      printf("\033[31mFAIL\033[0m Line %d: %s\n  Expected: %u, Got: %u\n",
+                line_no, expr_str, expected, result);
+      fail++;
+    } else {
+      pass++;
+      // printf("PASS Line %d: %s = %u\n", line_no, expr_str, result);
+    }
+  }
+
+  fclose(fp);
+  printf("\n=== Test Summary ===\n");
+  printf("Total: %d, Pass: %d, Fail: %d\n", pass + fail, pass, fail);
+}
+
 void sdb_set_batch_mode() {
   is_batch_mode = true;
 }
 
 void sdb_mainloop() {
   if (is_batch_mode) {
-    cmd_c(NULL);
+    //cmd_c(NULL);
+    expr_test(); 
     return;
   }
 
