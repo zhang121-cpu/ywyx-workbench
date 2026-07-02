@@ -215,7 +215,7 @@ static void expr_test() {
       fail++;
     } else {
       pass++;
-      // printf("PASS Line %d: %s = %u\n", line_no, expr_str, result);
+      printf("PASS Line %d: %s = %u\n", line_no, expr_str, result);
     }
   }
 
