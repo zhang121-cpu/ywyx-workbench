@@ -84,9 +84,9 @@ static struct {
 
 static int cmd_help(char *args) {
   /* extract the first argument */
-  char *arg = strtok(args, " ");
-  int i;
-
+  char *arg = strtok(args, " ");    //输入的第一个参数后还有其他的参数的话，这里args会指向这些参数的第一个字符，arg是args的第一个参数
+  int i;                                                      //如果没有后续参数，args被赋值NULL，arg在上个strtok下也被赋值NULL
+                                                                    //实质上相当于args永远是指向输入的第二个参数的指针，arg是输入的第二个参数
   if (arg == NULL) {
     /* no argument given */
     for (i = 0; i < NR_CMD; i ++) {
@@ -107,7 +107,7 @@ static int cmd_help(char *args) {
 
 static int cmd_si(char *args) {
   /* extract the first argument */
-  char *num = strtok(NULL, " ");
+  char *num = strtok(args, " ");
 
   if (num == NULL) {
     /* no argument given */
@@ -121,7 +121,7 @@ static int cmd_si(char *args) {
 
 static int cmd_info(char *args) {
   /* extract the first argument */
-  char *arg = strtok(NULL, " ");
+  char *arg = strtok(args, " ");
 
   if (arg == NULL) {
     printf("Please specify the type of information to display: "
@@ -142,7 +142,7 @@ static int cmd_info(char *args) {
 
 static int cmd_x(char *args){
   /* extract the first argument */
-  char *num = strtok(NULL, " ");
+  char *num = strtok(args, " ");
   char *addr_str = strtok(NULL, " ");
 
   if (num == NULL || addr_str == NULL) {
@@ -181,7 +181,7 @@ static int cmd_p(char *args) {
 }
 
 static int cmd_w(char *args) {
-  char *arg = strtok(NULL, " ");
+  char *arg = strtok(args, " ");
 
   if (arg == NULL) {
     printf("Please input the expression for the watchpoint.\n");
