@@ -59,7 +59,9 @@ static int cmd_help(char *args);
 static int cmd_si(char *args);
 static int cmd_info(char *args);
 static int cmd_x(char *args);
-static int cmd_p(char *args) ;static struct {
+static int cmd_p(char *args) ;
+static int cmd_w(char *args);
+static struct {
   const char *name;
   const char *description;
   int (*handler) (char *);
@@ -71,6 +73,7 @@ static int cmd_p(char *args) ;static struct {
   { "info", "Print register state or watchpoint information", cmd_info },
   { "x", "Scan memory", cmd_x },
   {"p", "Evaluate expression", cmd_p},
+  {"w", "Set watchpoint", cmd_w},
 
 
   /* TODO: Add more commands */
@@ -121,16 +124,18 @@ static int cmd_info(char *args) {
   char *arg = strtok(NULL, " ");
 
   if (arg == NULL) {
-    printf("Please specify the type of information to display: 'r' for registers, 'w' for watchpoints.\n");
+    printf("Please specify the type of information to display: "
+                      "'r' for registers, 'w' for watchpoints.\n");
     return 0;
   }
 
   if (strcmp(arg, "r") == 0) {
     isa_reg_display();
-  // } else if (strcmp(arg, "w") == 0) {
-  //   wp_display();
+  } else if (strcmp(arg, "w") == 0) {
+    wp_display();
   } else {
-    printf("Unknown info command '%s'. Use 'info r' for registers or 'info w' for watchpoints.\n", arg);
+    printf("Unknown info command '%s'. Use 'info r' for "
+                      "registers or 'info w' for watchpoints.\n", arg);
   }
   return 0;
 }
@@ -165,7 +170,7 @@ static int cmd_p(char *args) {
     return 0;
   }
 
-  bool success = true;
+  bool success;
   word_t result = expr(args, &success);
   if (success) {
     printf("%u\n", result);
@@ -175,7 +180,19 @@ static int cmd_p(char *args) {
   return 0;
 }
 
+static int cmd_w(char *args) {
+  char *arg = strtok(NULL, " ");
+
+  if (arg == NULL) {
+    printf("Please input the expression for the watchpoint.\n");
+    return 0;
+  }
+
+  return 0;  //TODO: Implement watchpoint functionality
+}
+
 //用于测试expr函数的正确性
+/*
 static void expr_test() {
   FILE *fp = fopen("input", "r");
   if (fp == NULL) {
@@ -196,7 +213,7 @@ static void expr_test() {
     // 解析 "期望结果 表达式"
     unsigned int expected;
     char expr_str[65536];
-    if (sscanf(line, "%u %[^\n]", &expected, expr_str) != 2) {
+    if (sscanf(line, "%u %[^\n]", &expected, expr_str) != 2) {       //%[^\n]匹配除换行符之外的所有字符，^表示取反
       printf("Line %d: parse error: %s", line_no, line);
       continue;
     }
@@ -207,11 +224,12 @@ static void expr_test() {
 
     // 比较
     if (!success) {
-      printf("\033[31mFAIL\033[0m Line %d: %s (expr() returned false)\n", line_no, expr_str);
+      printf("\033[31mFAIL\033[0m Line %d: %s (expr() returned false)\n", 
+                      line_no, expr_str);
       fail++;
     } else if (result != expected) {
       printf("\033[31mFAIL\033[0m Line %d: %s\n  Expected: %u, Got: %u\n",
-                line_no, expr_str, expected, result);
+                      line_no, expr_str, expected, result);
       fail++;
     } else {
       pass++;
@@ -223,6 +241,7 @@ static void expr_test() {
   printf("\n=== Test Summary ===\n");
   printf("Total: %d, Pass: %d, Fail: %d\n", pass + fail, pass, fail);
 }
+  */
 
 void sdb_set_batch_mode() {
   is_batch_mode = true;
@@ -230,9 +249,7 @@ void sdb_set_batch_mode() {
 
 void sdb_mainloop() {
   if (is_batch_mode) {
-    //cmd_c(NULL);
-    expr_test(); 
-    nemu_state.state = NEMU_QUIT; 
+    cmd_c(NULL);
     return;
   }
 

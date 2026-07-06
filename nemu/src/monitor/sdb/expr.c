@@ -14,14 +14,20 @@
 ***************************************************************************************/
 
 #include <isa.h>
+#include <memory/vaddr.h>
 
 /* We use the POSIX regex functions to process regular expressions.
  * Type 'man regex' for more information about POSIX regex functions.
  */
 #include <regex.h>
 
+#define BUF_SIZE 35   //用于token.str的长度，存储2位0b+32位二进制数值+1位'\0'，正好满足内存地址显示
+
 enum {
-  TK_SPACE= 256, TK_EQ, TK_DEC, TK_UNSIGNED,
+  TK_SPACE= 256,  TK_HEX, TK_DEC,  TK_REG, TK_UNSIGNED, 
+  TK_EQ,  TK_NEQ, TK_AND, TK_OR, TK_LE,  TK_GE, TK_LT, TK_GT,
+  TK_DEREF, TK_NEG,
+
 
   /* TODO: Add more token types */
 
@@ -36,16 +42,26 @@ static struct rule {
    * Pay attention to the precedence level of different rules.
    */
 
-  {"[0-9]+", TK_DEC},      // decimal number
-  {"\\+", '+'},         // plus
-  {"\\-", '-'},         // minus
-  {"\\*", '*'},         // multiply
-  {"\\/", '/'},         // divide
-  {"\\(", '('},         // left parenthesis
-  {"\\)", ')'},         // right parenthesis
-  {" +", TK_SPACE},    // spaces
-  {"u", TK_UNSIGNED},    // unsigned suffix
-  {"==", TK_EQ},        // equal
+  {"0[xX][0-9a-fA-F]+", TK_HEX},      // 16进制数
+  {"[0-9]+", TK_DEC},      // 10进制数
+  {"\\$", '$'},          // 取寄存器值符号
+  {"zero|ra|sp|gp|tp|t[0-9]|s[0-9]|a[0-9]|s10|s11", TK_REG},  // 寄存器名
+  {"\\+", '+'},         // 加号
+  {"\\-", '-'},         // 减号或者负号
+  {"\\*", '*'},         // 乘号或指针解引用
+  {"\\/", '/'},         // 除号
+  {"\\(", '('},         // 左括号
+  {"\\)", ')'},         // 右括号
+  {" +", TK_SPACE},    // 空格
+  {"u", TK_UNSIGNED},   // 无符号后缀
+  {"==", TK_EQ},        // 等于
+  {"!=", TK_NEQ},       // 不等于
+  {"&&", TK_AND},       // 逻辑与
+  {"\\|\\|", TK_OR},    // 逻辑或
+  {"<=", TK_LE},        // 小于等于
+  {">=", TK_GE},        // 大于等于
+  {"<", TK_LT},         // 小于
+  {">", TK_GT},         // 大于
 };
 
 #define NR_REGEX ARRLEN(rules)
@@ -71,13 +87,13 @@ void init_regex() {
 
 typedef struct token {
   int type;
-  char str[32];
+  char str[BUF_SIZE]; 
 } Token;
 
 static Token tokens[65536] __attribute__((used)) = {};
 static int nr_token __attribute__((used))  = 0;
 
-//检查表达式是否有不是别的token类型的字符
+//将表达式字符串放入tokens数组，返回true表示成功，false表示失败
 static bool make_token(char *e) {
   int position = 0;
   int i;
@@ -92,16 +108,37 @@ static bool make_token(char *e) {
         char *substr_start = e + position;
         int substr_len = pmatch.rm_eo;
 
-        //Log("match rules[%d] = \"%s\" at position %d with len %d: %.*s",
-          //  i, rules[i].regex, position, substr_len, substr_len, substr_start);
+        Log("match rules[%d] = \"%s\" at position %d with len %d: %.*s",
+            i, rules[i].regex, position, substr_len, substr_len, substr_start);
 
         position += substr_len;
 
         /*将识别出的token写入结构体tokens中，同时将nr_tokens加1*/
         switch (rules[i].token_type) {
+          case TK_HEX:
+            Assert(substr_len < BUF_SIZE, "hex_token too long: %.*s",
+                            substr_len, substr_start);  //避免token过长导致溢出
+            tokens[nr_token].type = TK_HEX;
+            strncpy(tokens[nr_token].str, substr_start, substr_len);
+            tokens[nr_token].str[substr_len] = '\0';
+            nr_token++;
+            break;
           case TK_DEC:
-            Assert(substr_len < 32, "token too long: %.*s", substr_len, substr_start);  //避免token过长导致溢出
+            Assert(substr_len < BUF_SIZE, "dec_token too long: %.*s", 
+                            substr_len, substr_start);  //避免token过长导致溢出
             tokens[nr_token].type = TK_DEC;
+            strncpy(tokens[nr_token].str, substr_start, substr_len);
+            tokens[nr_token].str[substr_len] = '\0';
+            nr_token++;
+            break;
+          case '$':
+            tokens[nr_token].type = rules[i].token_type;
+            nr_token++;
+            break;
+          case TK_REG:
+            Assert(substr_len < BUF_SIZE, "reg_token too long: %.*s", 
+                            substr_len, substr_start);  //避免token过长导致溢出
+            tokens[nr_token].type = TK_REG;
             strncpy(tokens[nr_token].str, substr_start, substr_len);
             tokens[nr_token].str[substr_len] = '\0';
             nr_token++;
@@ -112,7 +149,8 @@ static bool make_token(char *e) {
             break;
           case TK_SPACE:case TK_UNSIGNED:
             break;
-          case TK_EQ:
+          case TK_EQ:case TK_NEQ:case TK_AND:case TK_OR:
+          case TK_LE:case TK_GE:case TK_LT:case TK_GT:
             tokens[nr_token].type = rules[i].token_type;
             nr_token++;
             break;
@@ -131,6 +169,40 @@ static bool make_token(char *e) {
   }
 
   return true;
+}
+
+/*判断 token 类型是否为运算符或左括号，用于判断下一个运算符"*"和"-"的情况
+  谢天谢地，这些运算符判断时前一个运算符无论判没判断结果都一样
+  （例如*前是-无论是减号还是负号都要判断*为解指针负号）*/
+static bool is_op(int type) {
+  switch (type) {
+    case '+': case '-': case '*': case '/':
+    case '(': case TK_EQ: case TK_NEQ:
+    case TK_AND: case TK_OR:
+    case TK_LE: case TK_GE: case TK_LT: case TK_GT:
+    case TK_DEREF: case TK_NEG:
+      return true;
+    default:
+      return false;
+  }
+}
+
+//查看表达式中是否有解指针*并将其标记为TK_DEREF类型
+static void check_deref(void) {
+  for (int i = 0; i < nr_token; i++) {
+    if (tokens[i].type == '*' && (i == 0 || is_op(tokens[i - 1].type))) {
+      tokens[i].type = TK_DEREF;  //将*标记为解指针
+    }
+  }
+}
+
+//查看表达式中是否有负号'-'并将其标记为TK_NEG类型
+static void check_negative_symbol(void) {
+  for (int i = 0; i < nr_token; i++) {
+    if (tokens[i].type == '-' && (i == 0 || is_op(tokens[i - 1].type))) {
+      tokens[i].type = TK_NEG;  //将-标记为负号
+    }
+  }
 }
 
 //检查表达式中是否有括号不匹配导致的错误
@@ -186,11 +258,29 @@ static int main_operator(int p, int q) {
     } else if (parentheses_depth == 0) { // 主运算符一定要在括号外部
       int precedence;
       switch (tokens[i].type) {
-        case '+':case '-':
+        case TK_OR:
           precedence = 1;
           break;
-        case '*':case '/':
+        case TK_AND:
           precedence = 2;
+          break;     
+        case TK_EQ:case TK_NEQ:
+          precedence = 3;
+          break;   
+        case TK_LE:case TK_GE:case TK_LT:case TK_GT:
+          precedence = 4;
+          break;  
+        case '+':case '-':
+          precedence = 5;
+          break;
+        case '*':case '/':
+          precedence = 6;
+          break;
+        case TK_DEREF:case TK_NEG:
+          precedence = 7;
+          break;
+        case '$':
+          precedence = 8;
           break;
         default:
           continue;  //跳过非运算符token 
@@ -212,14 +302,40 @@ static word_t eval(int p, int q) {
     panic("表达式错误");
   }
   else if (p == q) {
-    Assert(tokens[p].type == TK_DEC, "表达式错误");
-    return atoi(tokens[p].str);
+    switch (tokens[p].type) {
+      case TK_HEX:
+        return strtoul(tokens[p].str, NULL, 16);
+      case TK_DEC:
+        return atoi(tokens[p].str);
+      default: panic("表达式错误");
+    }
   }
   else if (check_parentheses(p, q) == true) {
     return eval(p + 1, q - 1);
   }
   else {
     int op = main_operator(p, q) ; //找到主运算符位置
+    
+    switch (tokens[op].type) {
+      case TK_DEREF: {                         //处理解指针
+        word_t addr = eval(op + 1, q);
+        return vaddr_read(addr, 4);            //假设读取4字节数据
+      }
+      case TK_NEG: {                           //处理负号
+        word_t val = eval(op + 1, q);
+        return -val;
+      }
+      case '$': {                              //处理寄存器取值
+        bool success;
+        word_t reg_val = isa_reg_str2val(tokens[op+1].str, 
+                                              &success);  //查看下一个token对应的寄存器名
+        if (!success) {
+          panic("无效的寄存器名: %s", tokens[op+1].str);
+        }
+        return reg_val;
+      }
+    }
+
     word_t val1 = eval(p, op - 1);
     word_t val2 = eval(op + 1, q);
 
@@ -230,6 +346,14 @@ static word_t eval(int p, int q) {
       case '/': 
         Assert(val2 != 0, "除数不能为零");
         return val1 / val2;
+      case TK_EQ: return val1 == val2;
+      case TK_NEQ: return val1 != val2;
+      case TK_AND: return val1 && val2;   
+      case TK_OR: return val1 || val2;
+      case TK_LE: return val1 <= val2;
+      case TK_GE: return val1 >= val2;
+      case TK_LT: return val1 < val2;
+      case TK_GT: return val1 > val2;
       default: panic("请在eval函数中添加运算符的运算逻辑");
     }
   }
@@ -241,6 +365,9 @@ word_t expr(char *e, bool *success) {
     *success = false;
     return 0;
   }
+
+  check_deref();
+  check_negative_symbol();
 
   check_brackets();
 
