@@ -141,22 +141,26 @@ static int cmd_info(char *args) {
 }
 
 static int cmd_x(char *args){
-  /* extract the first argument */
-  char *num = strtok(args, " ");
-  char *addr_str = strtok(NULL, " ");
+  size_t length = strlen(args);
+  char *num = strtok(args, " ");                       //获取指令条数
+  char *addr_str = args + strlen(num) + 1;  //获取地址参数的起始位置
 
-  if (num == NULL || addr_str == NULL) {
+  if (num == NULL || addr_str >= args + length) {  //检查是否有足够的参数
     printf("Please specify the printed instruction's num and address.\n");
     return 0;
   }
 
-  vaddr_t addr = strtoul(addr_str, NULL, 0);        //可自动识别并转换包括0x十六进制在内的各种进制
-
-  for (int i = 0; i < atoi(num); i++){
-    if (i % 4 == 0) printf("0x%08x:", addr + i * 4);        //每4条指令重新打印1行地址
-    printf("  0x%08x", vaddr_read(addr + i * 4, 4));
-    if (i % 4 == 3) printf("\n");                                             //每4条指令换行                                                                                                    
-    if (atoi(num) - 1 == i && i % 4 != 3) printf("\n");  //最后1行指令不足4条时换行
+  bool success;
+  vaddr_t addr = expr(addr_str, &success);  
+  if (!success) 
+    printf("Invalid address expression: %s\n", addr_str);
+  else {
+    for (int i = 0; i < atoi(num); i++){
+      if (i % 4 == 0) printf("0x%08x:", addr + i * 4);        //每4条指令重新打印1行地址
+      printf("  0x%08x", vaddr_read(addr + i * 4, 4));
+      if (i % 4 == 3) printf("\n");                                             //每4条指令换行                                                                                                    
+      if (atoi(num) - 1 == i && i % 4 != 3) printf("\n");  //最后1行指令不足4条时换行
+    }
   }
   return 0;
 }
