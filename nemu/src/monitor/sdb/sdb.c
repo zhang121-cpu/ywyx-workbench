@@ -162,10 +162,7 @@ static int cmd_x(char *args){
 }
 
 static int cmd_p(char *args) {
-  /* extract the first argument */
-  char *arg = strtok(args, " ");
-
-  if (arg == NULL) {
+  if (args == NULL) {                       //如果使用之前strtok函数方案，会将' '变为'\0'                              
     printf("Please input the expression.\n");
     return 0;
   }
