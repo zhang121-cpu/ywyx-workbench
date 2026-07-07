@@ -110,7 +110,7 @@ void wp_display(){
     printf("监视点列表：\n");
     printf("编号\t表达式\t\t值\n");
     while  (new != NULL) {
-      printf("%d\t%s\t0x%x(%u)\n", new -> NO, new -> expr, new -> value, new -> value);
+      printf("%d\t%s\t\t0x%x(%u)\n", new -> NO, new -> expr, new -> value, new -> value);
       new = new -> next;
     }    
     return;
