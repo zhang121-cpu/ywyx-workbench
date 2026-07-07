@@ -1,7 +1,3 @@
-# 用于sim中的记录
-include ../Makefile
-
-
 TOPNAME = top
 NXDC_FILES = constr/top.nxdc
 INC_PATH ?=
@@ -48,7 +44,6 @@ run: $(BIN)
 	@$^
 
 sim: $(BIN)
-	$(call git_commit, "sim RTL") # DO NOT REMOVE THIS LINE!!!
 	@$^
 
 clean:

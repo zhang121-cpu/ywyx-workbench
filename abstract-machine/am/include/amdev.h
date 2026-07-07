@@ -44,6 +44,7 @@ AM_DEVREG(24, NET_RX,       WR, Area buf);
   _(UP) _(DOWN) _(LEFT) _(RIGHT) _(INSERT) _(DELETE) _(HOME) _(END) _(PAGEUP) _(PAGEDOWN)
 
 #define AM_KEY_NAMES(key) AM_KEY_##key,
+
 enum {
   AM_KEY_NONE = 0,
   AM_KEYS(AM_KEY_NAMES)
