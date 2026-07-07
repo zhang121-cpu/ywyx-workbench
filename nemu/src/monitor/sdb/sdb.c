@@ -61,6 +61,7 @@ static int cmd_info(char *args);
 static int cmd_x(char *args);
 static int cmd_p(char *args) ;
 static int cmd_w(char *args);
+static int cmd_d(char *args);
 static struct {
   const char *name;
   const char *description;
@@ -74,6 +75,7 @@ static struct {
   { "x", "Scan memory", cmd_x },
   {"p", "Evaluate expression", cmd_p},
   {"w", "Set watchpoint", cmd_w},
+  {"d", "Delete watchpoint", cmd_d},
 
 
   /* TODO: Add more commands */
@@ -173,15 +175,34 @@ static int cmd_p(char *args) {
 
   bool success;
   word_t result = expr(args, &success);
-  if (success) {
-    printf("%u\n", result);
-  } else {
+
+  if (!success) 
     printf("Invalid expression: %s\n", args);
-  }
+  else 
+    printf("%u\n", result);
+  
   return 0;
 }
 
 static int cmd_w(char *args) {
+  if (args == NULL) {                       //如果使用之前strtok函数方案，会将' '变为'\0'  
+    printf("Please input the expression for the watchpoint.\n");
+    return 0;
+  }
+
+  bool success;
+  word_t result = expr(args, &success);
+
+  if (!success) 
+    printf("Invalid expression: %s\n", args);
+  else {
+    wp_set(args, result);
+  }
+
+  return 0; 
+}
+
+static int cmd_d(char *args) {
   char *arg = strtok(args, " ");
 
   if (arg == NULL) {
@@ -189,7 +210,8 @@ static int cmd_w(char *args) {
     return 0;
   }
 
-  return 0;  //TODO: Implement watchpoint functionality
+  wp_d(atoi(arg));
+  return 0;  
 }
 
 //用于测试expr函数的正确性

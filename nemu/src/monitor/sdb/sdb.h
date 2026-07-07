@@ -20,5 +20,7 @@
 
 word_t expr(char *e, bool *success);
 void wp_display();
+void wp_set (char *args, word_t value) ;
+void wp_d(int NO);
 
 #endif

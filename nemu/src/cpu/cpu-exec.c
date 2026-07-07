@@ -39,6 +39,12 @@ static void trace_and_difftest(Decode *_this, vaddr_t dnpc) {
   if (g_print_step) { IFDEF(CONFIG_ITRACE, puts(_this->logbuf)); }
   IFDEF(CONFIG_DIFFTEST, difftest_step(_this->pc, dnpc));
 }
+//检查监视点是否发生变化
+#ifdef CONFIG_WATCHPOINT
+  int symbol = wp_check();  //检查监视点是否发生变化
+  if (symbol)
+    nemu_state.state = NEMU_STOP;
+#endif
 
 static void exec_once(Decode *s, vaddr_t pc) {
   s->pc = pc;
