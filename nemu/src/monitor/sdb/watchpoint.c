@@ -123,7 +123,7 @@ void wp_set (char *args, word_t value) {
   strncpy(new -> expr, args, sizeof(new -> expr) - 1);
   new -> expr[sizeof(new -> expr) - 1] = '\0';  // 确保以'\0'结尾
   new -> value = value;
-  printf("监视点%d\t表达式为%s\t值为0x%x(%u)\n", 
+  printf("监视点%d已设置\t表达式为%s\t值为0x%x(%u)\n", 
                     new -> NO, new -> expr, new -> value, new -> value);
   return;
 }
