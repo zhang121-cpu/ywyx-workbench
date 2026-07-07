@@ -108,7 +108,7 @@ void wp_display(){
   } else {
     WP *new = head;
     printf("监视点列表：\n");
-    printf("监视点编号\t监视点表达式\t监视点值\n");
+    printf("编号\t表达式\t值\n");
     while  (new != NULL) {
       printf("%d\t%s\t0x%x(%u)\n", new -> NO, new -> expr, new -> value, new -> value);
       new = new -> next;
