@@ -34,7 +34,7 @@ void isa_reg_display();
 word_t isa_reg_str2val(const char *name, bool *success);
 
 // exec
-struct Decode;
+struct Decode;  //用于存放在执行一条指令过程中所需的信息, 包括指令的PC, 下一条指令的PC等等
 int isa_exec_once(struct Decode *s);
 
 // memory

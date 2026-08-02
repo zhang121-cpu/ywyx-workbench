@@ -83,8 +83,15 @@
 // NOTE2: each element in the container can be a tuple
 #define MAP(c, f) c(f)
 
-#define BITMASK(bits) ((1ull << (bits)) - 1)
+#define BITMASK(bits) ((1ull << (bits)) - 1)  //1ull 数值1，无符号，long long结构,生成bits位掩码
 #define BITS(x, hi, lo) (((x) >> (lo)) & BITMASK((hi) - (lo) + 1)) // similar to x[hi:lo] in verilog
+
+//将 x 的低 len 位进行符号扩展（Sign Extension）到 64 位
+/*({})语句表达式，GCC的拓展语法，可在{}中写多条语句，最后一条语句的值作为整个表达式的值返回
+  struct { int64_t n : len; } __x = { .n = x }; 定义了一个结构体类型，将成员其初始化为 x
+  int64_t n : len; 定义了一个长度为 len 位的有符号整数位域成员 n,
+  给 n 赋值时，编译器会截断到 len 位,读取 n 的值时，编译器会自动做符号扩展
+  (uint64_t)__x.n 将结构体成员 n 强制转换为 uint64_t 类型，保持底层位模式不变，并返回该值*/
 #define SEXT(x, len) ({ struct { int64_t n : len; } __x = { .n = x }; (uint64_t)__x.n; })
 
 #define ROUNDUP(a, sz)   ((((uintptr_t)a) + (sz) - 1) & ~((sz) - 1))

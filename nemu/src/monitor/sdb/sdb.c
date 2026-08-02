@@ -264,7 +264,7 @@ static void expr_test() {
   printf("\n=== Test Summary ===\n");
   printf("Total: %d, Pass: %d, Fail: %d\n", pass + fail, pass, fail);
 }
-  */
+*/
 
 void sdb_set_batch_mode() {
   is_batch_mode = true;
@@ -273,6 +273,8 @@ void sdb_set_batch_mode() {
 void sdb_mainloop() {
   if (is_batch_mode) {
     cmd_c(NULL);
+    //expr_test();
+    //nemu_state.state = NEMU_QUIT;
     return;
   }
 

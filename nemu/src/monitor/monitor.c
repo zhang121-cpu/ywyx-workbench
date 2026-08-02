@@ -32,8 +32,6 @@ static void welcome() {
   Log("Build time: %s, %s", __TIME__, __DATE__);
   printf("Welcome to %s-NEMU!\n", ANSI_FMT(str(__GUEST_ISA__), ANSI_FG_YELLOW ANSI_BG_RED));
   printf("For help, type \"help\"\n");
-  // Log("Exercise: Please remove me in the source code and compile NEMU again.");
-  // assert(0);
 }
 
 #ifndef CONFIG_TARGET_AM
@@ -46,8 +44,7 @@ static char *diff_so_file = NULL;
 static char *img_file = NULL;
 static int difftest_port = 1234;
 
-static long load_img() {
-  if (img_file == NULL) {
+static long load_img() {  if (img_file == NULL) {
     Log("No image is given. Use the default build-in image.");
     return 4096; // built-in image size
   }
@@ -55,12 +52,12 @@ static long load_img() {
   FILE *fp = fopen(img_file, "rb");
   Assert(fp, "Can not open '%s'", img_file);
 
-  fseek(fp, 0, SEEK_END);
-  long size = ftell(fp);
+  fseek(fp, 0, SEEK_END); //将文件位置指针移动到文件末尾，用于后续获取文件大小
+  long size = ftell(fp);  //返回当前文件位置相对于文件开头的字节偏移量，即文件总大小
 
   Log("The image is %s, size = %ld", img_file, size);
 
-  fseek(fp, 0, SEEK_SET);
+  fseek(fp, 0, SEEK_SET);  //将文件位置指针重置到文件开头，准备读取数据
   int ret = fread(guest_to_host(RESET_VECTOR), size, 1, fp);
   assert(ret == 1);
 
@@ -84,7 +81,7 @@ static int parse_args(int argc, char *argv[]) {
       case 'p': sscanf(optarg, "%d", &difftest_port); break;
       case 'l': log_file = optarg; break;
       case 'd': diff_so_file = optarg; break;
-      case 1: img_file = optarg; return 0;
+      case 1: img_file = optarg; return 0;    //optarg是由getopt_long()函数作用而指向当前参数字符串
       default:
         printf("Usage: %s [OPTION...] IMAGE [args]\n\n", argv[0]);
         printf("\t-b,--batch              run with batch mode\n");

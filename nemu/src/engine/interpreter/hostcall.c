@@ -32,7 +32,7 @@ void invalid_inst(vaddr_t thispc) {
   temp[0] = inst_fetch(&pc, 4);
   temp[1] = inst_fetch(&pc, 4);
 
-  uint8_t *p = (uint8_t *)temp;
+  uint8_t *p = (uint8_t *)temp; // 把 8 字节数据按 uint8_t* 重新解释，方便逐字节打印
   printf("invalid opcode(PC = " FMT_WORD "):\n"
       "\t%02x %02x %02x %02x %02x %02x %02x %02x ...\n"
       "\t%08x %08x...\n",

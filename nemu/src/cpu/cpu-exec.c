@@ -44,16 +44,18 @@ static void trace_and_difftest(Decode *_this, vaddr_t dnpc) {
 //检查监视点是否发生变化
 #ifdef CONFIG_WATCHPOINT
   int symbol = wp_check();  //检查监视点是否发生变化
-  if (symbol)
-    nemu_state.state = NEMU_STOP;
-#endif
+  if (symbol) {
+    if (nemu_state.state != NEMU_END)  //如果是ebreak，则不需要将状态设置为NEMU_STOP
+      nemu_state.state = NEMU_STOP;
+  }
+   #endif
 }
 
 static void exec_once(Decode *s, vaddr_t pc) {
   s->pc = pc;
-  s->snpc = pc;
+  s->snpc = pc;        //snpc是指static next PC,指存储中当前pc的下一条指令
   isa_exec_once(s);
-  cpu.pc = s->dnpc;
+  cpu.pc = s->dnpc;  //dnpc是指dynamic next PC，指实际运行中当前pc的下一条指令
 #ifdef CONFIG_ITRACE
   char *p = s->logbuf;
   p += snprintf(p, sizeof(s->logbuf), FMT_WORD ":", s->pc);
@@ -84,7 +86,7 @@ static void execute(uint64_t n) {
   Decode s;
   for (;n > 0; n --) {
     exec_once(&s, cpu.pc);
-    g_nr_guest_inst ++;
+    g_nr_guest_inst ++;  //一个用于记录客户指令的计数器
     trace_and_difftest(&s, cpu.pc);
     if (nemu_state.state != NEMU_RUNNING) break;
     IFDEF(CONFIG_DEVICE, device_update());
