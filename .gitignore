@@ -14,5 +14,5 @@
 /am-kernels
 
 !/E/*
-/nvboard
-!/riscv32-nemu
+!/nvboard
+!/riscv32-nemu/*
