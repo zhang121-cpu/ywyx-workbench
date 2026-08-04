@@ -10,3 +10,8 @@
 !.gitignore
 !README.md
 build/
+
+!原先的Makefile
+!board/*
+!constr/*
+!resource/*
