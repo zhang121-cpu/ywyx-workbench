@@ -5,6 +5,8 @@
 #if !defined(__ISA_NATIVE__) || defined(__NATIVE_USE_KLIB__)
 static unsigned long int next = 1;
 
+#define TEM_SIZE 32
+
 int rand(void) {
   // RAND_MAX assumed to be 32767
   next = next * 1103515245 + 12345;
@@ -21,12 +23,49 @@ int abs(int x) {
 
 int atoi(const char* nptr) {
   int x = 0;
+  int neg = 0;
+
+  //跳过前面的空格
   while (*nptr == ' ') { nptr ++; }
+
+  // 处理正负号
+  if (*nptr == '-') {
+    neg = 1;
+    nptr++;
+  } else if (*nptr == '+') {
+    nptr++;
+  }
+
+  //解析数组
   while (*nptr >= '0' && *nptr <= '9') {
     x = x * 10 + *nptr - '0';
     nptr ++;
   }
-  return x;
+  return neg ? -x : x;             // 根据符号返回
+}
+
+char *itoa(int value, char *str, int base) {
+  char *p = str;
+  char tmp[TEM_SIZE];
+  int i = 0;
+  int neg = (value < 0 && base == 10); // 仅在十进制下处理负数
+
+  if (neg < 0) {
+    value = -value;
+  }
+  do {                                                   //保证至少执行一次循环，tmp中有值
+    tmp[i++] = "0123456789abcdef"[value % base];  //查表法放入余数
+    value /= base;
+  } while (value > 0);            
+
+  if (neg) {
+    *p++ = '-';
+  }
+  while (i > 0) {
+    *p++ = tmp[--i];               //将 tmp 中的字符倒序复制到 str 中
+  }
+  *p = '\0';
+  return str;
 }
 
 void *malloc(size_t size) {

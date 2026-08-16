@@ -12,6 +12,4 @@
 build/
 
 !原先的Makefile
-!board/*
-!constr/*
-!resource/*
+!wave.fst

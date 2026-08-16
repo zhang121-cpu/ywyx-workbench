@@ -1,92 +1,43 @@
+import "DPI-C" function void ebreak_handler(input int unsigned a0);
+
 module top (
     input clk,
-    input rst,
-    output [6:0] Seven_Segment_Display1,
-    output [6:0] Seven_Segment_Display0
+    input rst
 );
 
-    wire [3:0] pc_state;
-    reg [3:0] pc_nextstate;
-    wire [127:0] rom_context;
-    wire [7:0] instruction;
-    wire [1:0] opcode;
-    wire [1:0] rd, rs1, rs2;
-    wire [3:0] imm, addr;
-    wire [7:0] rdata1, rdata2;
-    reg [1:0] raddr1, raddr2, waddr;
-    reg [7:0] wdata;
-    reg wen,seg_dis;
 
-    Reg_noen_4b pc_reg (clk, rst, pc_nextstate, pc_state);
+    wire [31:0] pc_state;             // 当前 PC
+    wire [31:0] instruction;     // 取出的指令
+    wire [4:0] rd, rs1, rs2;       // 目的/源寄存器编号
+    wire [31:0] imm;                       // 译码得到的立即数
+    wire [3:0] op_alu;                  // ALU 运算类型编码
+    wire       alu_src2_sel;          // ALU 第二操作数选择：0=rdata2, 1=imm
+    wire [1:0] wdata_sel;          // 写回来源选择：00=ALU 01=MEM 10=PC+4 11=IMM
+    wire       m_ren, m_wen;          // 访存读/写使能
+    wire [1:0] m_size;                // 访存宽度：0=字节 1=半字 2=字
+    wire       wen;                             // 寄存器写使能
+    wire       jump_en;                    // jalr 跳转使能
+    wire       ebreak_en;               // 命中 ebreak 指令
+    wire [31:0] rdata1, rdata2;  // GPR 读出的两个源操作数
+    wire [31:0] alu_result;      // EXU 输出：运算结果 
+    wire [31:0] m_addr;               // 访存地址
+    wire [31:0] m_wdata;            // 写内存数据
+    wire [31:0] m_rdata;            // 读内存数据
+    wire [31:0] wdata;                // 写回寄存器的数据
+    wire [31:0] reg_check;       //a0寄存器中的内容
 
-    assign rom_context[7:0]    = 8'b10001010;  
-    assign rom_context[15:8]   = 8'b10010000;  
-    assign rom_context[23:16]  = 8'b10100000;  
-    assign rom_context[31:24]  = 8'b10110001;
-    assign rom_context[39:32]  = 8'b00010111;
-    assign rom_context[47:40]  = 8'b00101001;
-    assign rom_context[55:48]  = 8'b11010001;
-    assign rom_context[63:56]  = 8'b01000010;
-    assign rom_context[71:64]  = 8'b11011111;
-    assign rom_context[79:72]  = 8'b0000_1001;
-    assign rom_context[87:80]  = 8'b0000_1010;
-    assign rom_context[95:88]  = 8'b0000_1011;
-    assign rom_context[103:96] = 8'b0000_1100;
-    assign rom_context[111:104]= 8'b0000_1101;
-    assign rom_context[119:112]= 8'b0000_1110;
-    assign rom_context[127:120]= 8'b0000_1111;
-    mux16_1_8b rom (rom_context, pc_state, instruction);
+    IFU ifu (clk, rst, jump_en, alu_result, pc_state);
+    IDU idu(instruction, rd,  rs1, rs2, imm, op_alu, alu_src2_sel, wdata_sel, m_ren, m_wen, m_size, wen, jump_en, ebreak_en);
+    EXU exu(op_alu, alu_src2_sel, rdata1, rdata2,  imm, alu_result);
+    LSU lsu(alu_result, rdata2, m_ren, m_wen, m_addr, m_wdata);
+    WBU wbu(wdata_sel, alu_result, pc_state, m_rdata, imm, wdata);
 
-    assign opcode = instruction[7:6];
-    assign rd = instruction[5:4];
-    assign rs1 = instruction[3:2];
-    assign rs2 = instruction[1:0];
-    assign imm = instruction[3:0];
-    assign addr = instruction[5:2];
+    MEM mem (clk, rst, pc_state, instruction, m_addr, m_rdata, m_wdata, m_ren, m_wen, m_size);
+    GPR gpr(clk, rst, rs1, rs2, rdata1, rdata2, rd, wdata, wen, reg_check);
 
-    always @ (*) begin
-        raddr1 = 2'b00;
-        raddr2 = 2'b00;
-        waddr  = 2'b00;
-        wdata  = 8'h00;
-        wen    = 1'b0;
-        seg_dis = 1'b0;
-        pc_nextstate = pc_state + 4'd1; 
-
-        case (opcode)
-            2'b00:begin
-                raddr1 = rs1;
-                raddr2 = rs2;
-                waddr = rd;
-                wdata = rdata1 + rdata2;
-                wen = 1; 
-            end
-            2'b01:begin
-                raddr2 = rs2;
-                wen = 1'b0;
-                seg_dis = 1'b1;
-            end
-            2'b10:begin
-                waddr = rd;
-                wdata = {4'b0000,imm};
-                wen = 1;
-            end
-            2'b11:begin
-                raddr1 = 2'b00;
-                raddr2 = rs2;
-                wen = 0;
-                if (rdata1 != rdata2)
-                    pc_nextstate = addr;
-            end
-            default:begin
-
-            end
-        endcase        
+//ebreak是大事，为防止毛刺，使用时钟边沿采样
+    always @(posedge clk) begin
+        if (ebreak_en) ebreak_handler(reg_check);
     end
-
-    GPR gpr (clk, rst, raddr1, raddr2, rdata1, rdata2, waddr, wdata, wen);
-
-    bcd7seg display1 (rdata2[7:4], seg_dis, Seven_Segment_Display1);
-    bcd7seg display2 (rdata2[3:0], seg_dis, Seven_Segment_Display0);
 
 endmodule
